@@ -1,16 +1,14 @@
 from typing import List, Optional, Literal
-from fastapi import FastAPI, Query, HTTPException
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from .logic import simulate_campaign, top_prospects, explain_decision
-from .logic import schema_mapping
-from .logic import segment_customers
+
 from .logic import load_df, DATA_PATH, _last_schema_mapping
+from .logic import segment_customers
+from .logic import simulate, compare  # NEW
 
+app = FastAPI(title="BIAT Agentic Optimization API", version="0.2.0", debug=True)
 
-app = FastAPI(title="BIAT Agentic Optimization API", version="0.1.0", debug=True)  # debug=True helps while developing
-
-# CORS for Vite (default :5173)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173", "http://localhost:5174"],
@@ -19,37 +17,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-class CampaignParams(BaseModel):
-    template: Literal["Baseline","CashToDigital","LoyaltyBoost","AggressiveRate"] = "Baseline"
-    w_cash: float = Field(0.4, ge=0, le=1)
-    w_dig: float = Field(0.6, ge=0, le=1)
-    governorates: Optional[List[str]] = None
-
 @app.get("/health")
 def health():
     return {"ok": True}
 
-@app.post("/simulate-campaign")
-def api_simulate_campaign(p: CampaignParams):
-    df = simulate_campaign(p.template, p.w_cash, p.w_dig, p.governorates)
-    return {"governorate_scores": df.to_dict(orient="records")}
-
-@app.get("/top-prospects")
-def api_top_prospects(threshold: float = Query(0.7, ge=0, le=1), limit: int = Query(100, ge=1, le=1000)):
-    df = top_prospects(threshold, limit)
-    return {"prospects": df.to_dict(orient="records")}
-
-@app.get("/agent/{agent_id}/decisions")
-def api_explain(agent_id: str):
-    trace = explain_decision(agent_id)
-    return {"agent_id": agent_id, "trace": trace}
-
-
 @app.get("/schema")
 def api_schema():
-    load_df()  # ensure loader initializes and fills mapping
+    load_df()
     return {"data_path": str(DATA_PATH), "mapping": _last_schema_mapping}
-
 
 class SegReq(BaseModel):
     n_clusters: int = 4
@@ -59,4 +34,34 @@ def api_segments(req: SegReq):
     try:
         return segment_customers(req.n_clusters)
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        cols = list(load_df().columns)
+        raise HTTPException(status_code=400, detail=f"{e}. Available columns: {cols[:20]}...")
+
+# -------- Scenario endpoints --------
+class SimRequest(BaseModel):
+    scenario: Literal[
+        "Fermeture d'Agence","Currency Devaluation","Energy Crisis","Political Uncertainty",
+        "Digital Transformation","Tourism Recovery","Export Boom","Economic Recovery","Regional Instability","Baseline"
+    ]
+    intensity: Literal["Faible","Moyenne","Forte"] = "Moyenne"
+    segment: Literal["Tous les segments","Premium","SME","Mass Market"] = "Tous les segments"
+    region: Literal["Tunis","Sfax","Sousse","Kairouan","Bizerte","Gabès","Ariana","La Marsa"] = "Sousse"
+    duration_months: int = Field(6, ge=1, le=24)
+
+@app.post("/simulate")
+def api_simulate(req: SimRequest):
+    return simulate(
+        scenario=req.scenario,
+        intensity=req.intensity,
+        segment=req.segment,
+        region=req.region,
+        duration_months=req.duration_months,
+    )
+
+class CompareRequest(BaseModel):
+    scenarios: List[SimRequest]
+
+@app.post("/compare")
+def api_compare(req: CompareRequest):
+    payload = [r.dict() for r in req.scenarios]
+    return compare(payload)
