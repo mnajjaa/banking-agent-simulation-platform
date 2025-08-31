@@ -86,9 +86,7 @@ Compares multiple scenarios against the baseline and returns changes vs baseline
 ### (Optional) `/segments`
 
 If enabled in your backend, `POST /segments` clusters customers; it expects:
-```json
-{ "n_clusters": 3 }
-```
+
 
 ---
 
