@@ -18,7 +18,30 @@ export type Scenario =
 export type Intensity = "Faible" | "Moyenne" | "Forte";
 export type Segment = "Tous les segments" | "Premium" | "SME" | "Mass Market";
 export type Region =
-  | "Tunis" | "Sfax" | "Sousse" | "Kairouan" | "Bizerte" | "Gabès" | "Ariana" | "La Marsa";
+  | "Tunis"
+  | "Ariana"
+  | "Ben Arous"
+  | "Manouba"
+  | "Nabeul"
+  | "Zaghouan"
+  | "Bizerte"
+  | "Beja"
+  | "Jendouba"
+  | "Kef"
+  | "Siliana"
+  | "Sousse"
+  | "Monastir"
+  | "Mahdia"
+  | "Kairouan"
+  | "Kasserine"
+  | "Sidi Bouzid"
+  | "Sfax"
+  | "Gabes"
+  | "Medenine"
+  | "Tataouine"
+  | "Gafsa"
+  | "Tozeur"
+  | "Kebili";
 
 export type SimRequest = {
   scenario: Scenario;
@@ -26,10 +49,13 @@ export type SimRequest = {
   segment: Segment;
   region: Region;
   duration_months: number;
+  seed?: number;
 };
+
 
 // ---- Calls ----
 export const schema = () => api.get("/schema");
 export const segments = (n_clusters = 4) => api.post("/segments", { n_clusters });
 export const simulate = (payload: SimRequest) => api.post("/simulate", payload);
 export const compare = (scenarios: SimRequest[]) => api.post("/compare", { scenarios });
+export const simulate_abm = (payload: SimRequest) => api.post("/simulate_abm", payload);

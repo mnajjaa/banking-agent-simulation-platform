@@ -24,16 +24,8 @@ type NavItem = {
 };
 
 const navItems: NavItem[] = [
-  {
-    icon: <GridIcon />,
-    name: "Dashboard",
-    subItems: [{ name: "Ecommerce", path: "/", pro: false }],
-  },
-   {
-   icon: <PieChartIcon />,
-   name: "Segments",
-    path: "/segments",
-  },
+
+ 
   {
   icon: <PieChartIcon />,
   name: "Scenarios",
@@ -321,7 +313,7 @@ const AppSidebar: React.FC = () => {
                 }`}
               >
                 {isExpanded || isHovered || isMobileOpen ? (
-                  "Others"
+                  ""
                 ) : (
                   <HorizontaLDots />
                 )}

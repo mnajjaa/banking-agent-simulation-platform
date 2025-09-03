@@ -1,11 +1,16 @@
-from typing import List, Optional, Literal
+from typing import List
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-from .logic import load_df, DATA_PATH, _last_schema_mapping
-from .logic import segment_customers
-from .logic import simulate, compare  # NEW
+from .logic import (
+    load_df, DATA_PATH, _last_schema_mapping,
+    segment_customers,
+    simulate, compare,
+    run_abm_preview, simulate_with_abm,
+    # Type aliases from logic.py (keep API aligned with engine)
+    ScenarioType, Intensity, Segment, RegionName
+)
 
 app = FastAPI(title="BIAT Agentic Optimization API", version="0.2.0", debug=True)
 
@@ -26,6 +31,7 @@ def api_schema():
     load_df()
     return {"data_path": str(DATA_PATH), "mapping": _last_schema_mapping}
 
+# -------- Segmentation --------
 class SegReq(BaseModel):
     n_clusters: int = 4
 
@@ -37,15 +43,12 @@ def api_segments(req: SegReq):
         cols = list(load_df().columns)
         raise HTTPException(status_code=400, detail=f"{e}. Available columns: {cols[:20]}...")
 
-# -------- Scenario endpoints --------
+# -------- Scenarios (Pydantic models use types from logic.py) --------
 class SimRequest(BaseModel):
-    scenario: Literal[
-        "Fermeture d'Agence","Currency Devaluation","Energy Crisis","Political Uncertainty",
-        "Digital Transformation","Tourism Recovery","Export Boom","Economic Recovery","Regional Instability","Baseline"
-    ]
-    intensity: Literal["Faible","Moyenne","Forte"] = "Moyenne"
-    segment: Literal["Tous les segments","Premium","SME","Mass Market"] = "Tous les segments"
-    region: Literal["Tunis","Sfax","Sousse","Kairouan","Bizerte","Gabès","Ariana","La Marsa"] = "Sousse"
+    scenario: ScenarioType
+    intensity: Intensity = "Moyenne"
+    segment: Segment = "Tous les segments"
+    region: RegionName = "Sousse"
     duration_months: int = Field(6, ge=1, le=24)
 
 @app.post("/simulate")
@@ -65,3 +68,32 @@ class CompareRequest(BaseModel):
 def api_compare(req: CompareRequest):
     payload = [r.dict() for r in req.scenarios]
     return compare(payload)
+
+# -------- ABM endpoints (AgentPy-backed) --------
+@app.get("/abm/preview")
+def abm_preview(
+    scenario: ScenarioType = "Baseline",
+    intensity: Intensity = "Moyenne",
+    steps: int = 6,
+    seed: int = 42
+):
+    try:
+        return run_abm_preview(scenario, intensity, steps, seed)
+    except ImportError as e:
+        # AgentPy not installed or import failed — return a helpful 501
+        raise HTTPException(status_code=501, detail=str(e))
+
+@app.post("/simulate_abm")
+def simulate_abm(req: SimRequest, seed: int = 42):
+    """Deterministic simulate + ABM preview bundled."""
+    try:
+        return simulate_with_abm(
+            scenario=req.scenario,
+            intensity=req.intensity,
+            segment=req.segment,
+            region=req.region,
+            duration_months=req.duration_months,
+            seed=seed,
+        )
+    except ImportError as e:
+        raise HTTPException(status_code=501, detail=str(e))

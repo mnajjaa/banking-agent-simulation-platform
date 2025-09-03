@@ -18,9 +18,6 @@ import Blank from "./pages/Blank";
 import AppLayout from "./layout/AppLayout";
 import { ScrollToTop } from "./components/common/ScrollToTop";
 import Home from "./pages/Dashboard/Home";
-
-import Segments from "./pages/Segments"; // ← NEW
-import Scenarios from "./pages/Scenarios";
 import CreateScenario from "./pages/Scenarios/CreateScenario";
 import CompareScenarios from "./pages/Scenarios/CompareScenarios";
 
@@ -35,7 +32,6 @@ export default function App() {
           <Route index path="/" element={<Home />} />
 
           {/* NEW: Segments page */}
-          <Route path="/segments" element={<Segments />} /> 
           <Route path="/scenarios/create" element={<CreateScenario />} />
           <Route path="/scenarios/compare" element={<CompareScenarios />} />
 

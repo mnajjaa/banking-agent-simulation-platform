@@ -1,16 +1,31 @@
 // src/pages/Scenarios.tsx
 import { useState } from "react";
-import { compare, simulate, type SimRequest, type Scenario } from "../lib/api";
+import {
+  compare,
+  simulate,
+  simulate_abm,          // <- add this in ../lib/api (POST /simulate_abm), same signature as simulate
+  type SimRequest,
+  type Scenario,
+} from "../lib/api";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer,
 } from "recharts";
 
+// Keep scenarios aligned with backend (logic.COEFF keys)
 const SCENARIOS: Scenario[] = [
   "Fermeture d'Agence","Currency Devaluation","Energy Crisis",
   "Political Uncertainty","Digital Transformation","Tourism Recovery",
   "Export Boom","Economic Recovery","Regional Instability","Baseline",
 ];
-const REGIONS = ["Tunis","Sfax","Sousse","Kairouan","Bizerte","Gabès","Ariana","La Marsa"] as const;
+
+// EXACT match of backend RegionName (no accents, full list)
+const REGIONS = [
+  "Tunis","Ariana","Ben Arous","Manouba",
+  "Nabeul","Zaghouan","Bizerte","Beja","Jendouba","Kef","Siliana",
+  "Sousse","Monastir","Mahdia","Kairouan","Kasserine","Sidi Bouzid",
+  "Sfax","Gabes","Medenine","Tataouine",
+  "Gafsa","Tozeur","Kebili"
+] as const;
 
 export default function Scenarios() {
   const [conf, setConf] = useState<SimRequest>({
@@ -21,14 +36,24 @@ export default function Scenarios() {
     duration_months: 6,
   });
 
+  const [useAbm, setUseAbm] = useState<boolean>(false);
   const [res, setRes] = useState<any>(null);
   const [cmp, setCmp] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   const runSim = async () => {
     setLoading(true);
-    try { setRes((await simulate(conf)).data); }
-    finally { setLoading(false); }
+    try {
+      if (useAbm) {
+        const r = await simulate_abm(conf); // returns { ...simulate(), abm_preview: {...} }
+        setRes(r.data);
+      } else {
+        const r = await simulate(conf);     // returns { kpis, regional, segments }
+        setRes(r.data);
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const runCompare = async () => {
@@ -46,7 +71,7 @@ export default function Scenarios() {
   return (
     <div className="grid grid-cols-12 gap-4 md:gap-6">
       {/* Config */}
-      <section className="col-span-12 xl:col-span-4 bg-white dark:bg-gray-900 rounded-2xl p-4 shadow">
+      <section className="col-span-12 xl:col-span-4 bg-white dark:bg-gray-900 rounded-2xl p-4 shadow sticky top-4 h-fit">
         <h3 className="font-semibold mb-2">Configuration du Scénario</h3>
 
         <label className="text-sm">Type de Scénario</label>
@@ -70,7 +95,7 @@ export default function Scenarios() {
         <label className="text-sm">Région</label>
         <select className="input" value={conf.region}
           onChange={e=>setConf({...conf, region: e.target.value as any})}>
-          {REGIONS.map(r => <option key={r}>{r}</option>)}
+          {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
         </select>
 
         <label className="text-sm">Durée (mois): <b>{conf.duration_months}</b></label>
@@ -78,8 +103,14 @@ export default function Scenarios() {
                onChange={e=>setConf({...conf, duration_months: +e.target.value})}
                className="w-full"/>
 
+        <div className="flex items-center gap-2 mt-2">
+          <input id="abm" type="checkbox" checked={useAbm}
+                 onChange={(e)=>setUseAbm(e.target.checked)} />
+          <label htmlFor="abm" className="text-sm">Inclure l’aperçu ABM (AgentPy)</label>
+        </div>
+
         <button className="btn btn-primary mt-3 w-full" onClick={runSim} disabled={loading}>
-          Lancer la Simulation
+          {useAbm ? "Simuler + ABM" : "Lancer la Simulation"}
         </button>
         <button className="btn btn-dark mt-2 w-full" onClick={runCompare}>
           Comparer Multi-Scénarios
@@ -95,6 +126,18 @@ export default function Scenarios() {
           <KPI title="Taux de Churn" value={res ? (res.kpis.churn_rate*100).toFixed(1)+'%' : "—"} />
           <KPI title="Digital" value={res ? (res.kpis.digital_adoption*100).toFixed(1)+'%' : "—"} />
         </div>
+
+        {/* ABM preview block (if returned) */}
+        {res?.abm_preview && (
+          <Card title="Aperçu ABM (post-simulation)">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <KPI title="Agents" value={String(res.abm_preview.total_clients ?? "—")} />
+              <KPI title="Satisfaction (ABM)" value={((res.abm_preview.satisfaction ?? 0)*100).toFixed(1)+'%'} />
+              <KPI title="Churn (ABM)" value={((res.abm_preview.churn ?? 0)*100).toFixed(1)+'%'} />
+              <KPI title="Digital (ABM)" value={((res.abm_preview.digital ?? 0)*100).toFixed(1)+'%'} />
+            </div>
+          </Card>
+        )}
 
         {/* Regional Impact */}
         {res && (
@@ -136,7 +179,7 @@ export default function Scenarios() {
                   {s.delta_clients}
                 </div>
                 <div className="text-sm text-gray-600 mt-1">Impact revenus (TND)</div>
-                <div className="text-xl font-semibold">{s.revenue_impact_tnd.toLocaleString()}</div>
+                <div className="text-xl font-semibold">{Number(s.revenue_impact_tnd).toLocaleString()}</div>
               </Card>
             ))}
           </div>
