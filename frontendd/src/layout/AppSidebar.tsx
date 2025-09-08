@@ -34,7 +34,11 @@ const navItems: NavItem[] = [
     { name: "Compare Scenarios", path: "/scenarios/compare", pro: false },
   ],
   },  
- 
+  {
+   icon: <PieChartIcon />,
+   name: "Segments",
+    path: "/segments",
+  },
  
   
  
