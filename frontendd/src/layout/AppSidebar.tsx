@@ -34,7 +34,11 @@ const navItems: NavItem[] = [
     { name: "Compare Scenarios", path: "/scenarios/compare", pro: false },
   ],
   },  
- 
+  {
+   icon: <PieChartIcon />,
+   name: "Segments",
+    path: "/segments",
+  },
  
   
  
@@ -262,7 +266,7 @@ const AppSidebar: React.FC = () => {
             <>
               <img
                 className="dark:hidden"
-                src="/images/logo/logo.svg"
+                src="/images/logo/bankscope_logo_compact.svg"
                 alt="Logo"
                 width={150}
                 height={40}

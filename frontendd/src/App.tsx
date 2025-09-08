@@ -20,6 +20,7 @@ import { ScrollToTop } from "./components/common/ScrollToTop";
 import Home from "./pages/Dashboard/Home";
 import CreateScenario from "./pages/Scenarios/CreateScenario";
 import CompareScenarios from "./pages/Scenarios/CompareScenarios";
+import Segments from "./pages/Segments"; // ← NEW
 
 
 export default function App() {
@@ -34,6 +35,7 @@ export default function App() {
           {/* NEW: Segments page */}
           <Route path="/scenarios/create" element={<CreateScenario />} />
           <Route path="/scenarios/compare" element={<CompareScenarios />} />
+          <Route path="/segments" element={<Segments />} /> 
 
           {/* Others Page */}
           <Route path="/profile" element={<UserProfiles />} />
