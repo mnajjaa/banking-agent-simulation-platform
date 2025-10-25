@@ -1,4 +1,6 @@
 # Banking Agent Simulation Platform
+> This project is developed in collaboration with [Mahmoud Touil](https://github.com/MahmoudTouil25) and [Malek Essayeh](https://github.com/MalekEssayeh).
+
 
 An interactive **what-if simulator** for banking teams. Model customer behavior across regions and segments, compare multiple macro scenarios side-by-side, and visualize operational risk and revenue impact.
 
